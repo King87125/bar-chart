@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+  <div id="container" style="height: 100%"></div>
+
+  <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    async function fetchData() {
+      const response = await fetch('./count.csv');
+      const data = await response.text();
+      
+      // Parse CSV data
+      const rows = data.split('\n').slice(1); // Skip header row
+      const gameNames = [];
+      const currentPlayers = [];
+      const peakPlayers = [];
+      const totalTime = [];
+
+      rows.forEach(row => {
+        const cols = row.split(',');
+        if (cols.length >= 4) {
+          gameNames.push(cols[1].trim());           // Game name
+          currentPlayers.push(parseInt(cols[2]));    // Current players
+          peakPlayers.push(parseInt(cols[3]));       // Peak players
+          totalTime.push(parseInt(cols[4]));         // Total time
+        }
+      });
+
+      return { gameNames, currentPlayers, peakPlayers, totalTime };
+    }
+
+    async function createChart() {
+      const data = await fetchData();
+
+      var dom = document.getElementById('container');
+      var myChart = echarts.init(dom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+
+      var option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+            crossStyle: {
+              color: '#999'
+            }
+          }
+        },
+        toolbox: {
+          feature: {
+            dataView: { show: true, readOnly: false },
+            magicType: { show: true, type: ['line', 'bar'] },
+            restore: { show: true },
+            saveAsImage: { show: true }
+          }
+        },
+        legend: {
+          data: ['当前在线人数', '峰值玩家数', '总计游戏时间']
+        },
+        xAxis: [
+          {
+            type: 'category',
+            data: data.gameNames,
+            axisPointer: {
+              type: 'shadow'
+            },
+            axisLabel: {
+                interval: 0,  
+                rotate: 45,   
+                fontSize: 10  
+              }
+          }
+        ],
+        yAxis: [
+          {
+            type: 'value',
+            name: '玩家数',
+            min: 0,
+            axisLabel: {
+              formatter: '{value} 人'
+            }
+          },
+          {
+            type: 'value',
+            name: '总计游戏时间',
+            min: 0,
+            axisLabel: {
+              formatter: '{value} 小时'
+            }
+          }
+        ],
+        series: [
+          {
+            name: '当前在线人数',
+            type: 'bar',
+            tooltip: {
+              valueFormatter: function (value) {
+                return value + ' 人';
+              }
+            },
+            data: data.currentPlayers
+          },
+          {
+            name: '峰值玩家数',
+            type: 'bar',
+            tooltip: {
+              valueFormatter: function (value) {
+                return value + ' 人';
+              }
+            },
+            data: data.peakPlayers
+          },
+          {
+            name: '总计游戏时间',
+            type: 'line',
+            yAxisIndex: 1,
+            tooltip: {
+              valueFormatter: function (value) {
+                return value + ' 小时';
+              }
+            },
+            data: data.totalTime
+          }
+        ]
+      };
+
+      myChart.setOption(option);
+      window.addEventListener('resize', myChart.resize);
+    }
+
+    createChart();
+  </script>
+</body>
+</html>
